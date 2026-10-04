@@ -1,4 +1,4 @@
-# Deezer Audio Downloader
+ Deezer Audio Downloader
 
 Python script for processing Deezer album, track, and playlist URLs. This README describes the supplied script with the discussed `clean_filename()` and `get_song_filename()` additions, artist directories, and album release years.
 
@@ -135,7 +135,7 @@ Place the ARL file next to the script, using the same base filename:
 
 ```text
 deedl.py
-deezer.arl
+deedl.arl
 ```
 
 ### Obtain Your Own ARL Value
@@ -157,13 +157,13 @@ from pathlib import Path
 import os
 
 os.umask(0o077)
-path = Path("deezer.arl")
+path = Path("deedl.arl")
 value = getpass("Paste your ARL value: ").strip()
 if not value:
     raise SystemExit("ARL value must not be empty")
 path.write_text(value + "\n", encoding="utf-8")
 path.chmod(0o600)
-print("Created deezer.arl")
+print("Created deedl.arl")
 PYTHON
 ```
 
@@ -174,7 +174,7 @@ The file must contain only the ARL value, without quotes or an `arl=` prefix. Le
 The ARL value is an access token. Keep it private and do not commit it to Git. On Linux, restrict access to the file:
 
 ```bash
-chmod 600 deezer.arl
+chmod 600 deedl.arl
 ```
 
 Suggested `.gitignore` entries:
