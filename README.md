@@ -20,9 +20,9 @@ Python script for processing Deezer album, track, and playlist URLs. This README
 
 ## Installation
 
-The examples below assume the script is named `deezer.py`.
+The examples below assume the script is named `deedl.py`.
 
-Choose either system packages or a virtual environment. All commands below assume you are in the directory containing `deezer.py` and `requirements.txt`.
+Choose either system packages or a virtual environment. All commands below assume you are in the directory containing `deedl.py` and `requirements.txt`.
 
 ### Option 1: Run Directly with System Packages
 
@@ -55,7 +55,7 @@ If this fails specifically with `No module named 'Crypto'`, check the alternativ
 python3 -c "from Cryptodome.Cipher import Blowfish; import requests, mutagen; print('Dependencies OK')"
 ```
 
-If the alternative works, replace the original crypto import in `deezer.py` with this compatible import block:
+If the alternative works, replace the original crypto import in `deedl.py` with this compatible import block:
 
 ```python
 try:
@@ -71,7 +71,7 @@ Arch's `python-pycryptodome` provides `Crypto`; distro packaging may use `Crypto
 Create the ARL file as described below, then run:
 
 ```bash
-python3 deezer.py "https://www.deezer.com/de/album/ALBUM_ID"
+python3 deedl.py "https://www.deezer.com/de/album/ALBUM_ID"
 ```
 
 `requirements.txt` is not needed when all dependencies are installed with the package manager.
@@ -105,7 +105,7 @@ python -c "from Crypto.Cipher import Blowfish; import requests, mutagen; print('
 Create the ARL file as described below, then run:
 
 ```bash
-python3 deezer.py "https://www.deezer.com/de/album/ALBUM_ID"
+python3 deedl.py "https://www.deezer.com/de/album/ALBUM_ID"
 ```
 
 For later sessions, activate the environment again with `source .venv/bin/activate`. Leave it with `deactivate`.
@@ -113,7 +113,7 @@ For later sessions, activate the environment again with `source .venv/bin/activa
 Alternatively, run without activating the environment:
 
 ```bash
-.venv/bin/python3 deezer.py "https://www.deezer.com/de/album/ALBUM_ID"
+.venv/bin/python3 deedl.py "https://www.deezer.com/de/album/ALBUM_ID"
 ```
 
 `requirements.txt` contains only Python dependencies. SoX must be installed separately using the system package manager. Versions are not pinned; this is not a tested lockfile.
@@ -123,8 +123,8 @@ Alternatively, run without activating the environment:
 The existing `#!/usr/bin/env python3` shebang also supports direct execution:
 
 ```bash
-chmod +x deezer.py
-./deezer.py "https://www.deezer.com/de/album/ALBUM_ID"
+chmod +x deedl.py
+./deedl.py "https://www.deezer.com/de/album/ALBUM_ID"
 ```
 
 With an activated virtual environment, the shebang uses its Python interpreter. Otherwise it uses the `python3` found in your shell's PATH.
@@ -134,7 +134,7 @@ With an activated virtual environment, the shebang uses its Python interpreter. 
 Place the ARL file next to the script, using the same base filename:
 
 ```text
-deezer.py
+deedl.py
 deezer.arl
 ```
 
@@ -148,7 +148,7 @@ deezer.arl
 
 ### Create the File
 
-Run this next to `deezer.py` to enter the token without displaying it or placing it in shell history:
+Run this next to `deedl.py` to enter the token without displaying it or placing it in shell history:
 
 ```bash
 python3 - <<'PYTHON'
@@ -189,13 +189,13 @@ Suggested `.gitignore` entries:
 Download an album, replacing `ALBUM_ID` with the actual ID:
 
 ```bash
-python3 deezer.py "https://www.deezer.com/de/album/ALBUM_ID"
+python3 deedl.py "https://www.deezer.com/de/album/ALBUM_ID"
 ```
 
 Pass multiple URLs in one invocation:
 
 ```bash
-python3 deezer.py \
+python3 deedl.py \
   "https://www.deezer.com/de/album/ALBUM_ID_1" \
   "https://www.deezer.com/de/album/ALBUM_ID_2"
 ```
@@ -203,8 +203,8 @@ python3 deezer.py \
 The script also handles track and playlist URLs:
 
 ```bash
-python3 deezer.py "https://www.deezer.com/de/track/TRACK_ID"
-python3 deezer.py "https://www.deezer.com/de/playlist/PLAYLIST_ID"
+python3 deedl.py "https://www.deezer.com/de/track/TRACK_ID"
+python3 deedl.py "https://www.deezer.com/de/playlist/PLAYLIST_ID"
 ```
 
 Without arguments, the script exits without downloading anything. Press `Ctrl+C` to interrupt processing. Completed files remain on disk.
