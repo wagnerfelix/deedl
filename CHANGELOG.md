@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 
+- Download available album artwork as a separate 1000 × 1000 JPEG named `Folder.jpg`.
+- Preserve existing cover files using an existence check and exclusive file creation.
+- Copy album picture IDs into track data for album downloads.
+
 - Artist URL expansion into album and EP downloads.
 - Pagination for artist catalog results.
 - Filtering of artist releases to `album` and `ep`, excluding singles and unknown release types.
@@ -13,6 +17,8 @@ All notable changes to this project will be documented in this file.
 - HTTP short-link resolution before artist URL detection.
 
 ### Changed
+
+- Document cover storage, concurrent requests, and failure limitations.
 
 - Expand artist URLs before submitting work to the download thread pool.
 - Update the English README to use `deedl.py` and `deedl.arl` consistently.
@@ -32,4 +38,4 @@ All notable changes to this project will be documented in this file.
 - English installation instructions for Arch Linux and Ubuntu, with system packages or a virtual environment.
 - ARL session file setup instructions and `requirements.txt`.
 
-The Unreleased entries describe the proposed code changes. No release number or release date has been assigned, and the current implementation was not verified from a script attachment.
+The dated release entries document the discussed changes. No version number has been assigned; the current script implementation was not verified from a script attachment.

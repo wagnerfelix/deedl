@@ -14,6 +14,7 @@ Download audio from Deezer album, artist, track, and playlist URLs with `deedl.p
 - Creates artist and album directories only when they do not already exist.
 - Writes title, album, artist, release year, and track number metadata.
 - Uses up to four worker threads.
+- Saves available album covers as `Folder.jpg`, preserving existing cover files.
 
 ## Requirements
 
@@ -263,6 +264,7 @@ Example files:
 
 | Path | Description |
 | --- | --- |
+| `Example Artist/2026 - Example Album/Folder.jpg` | Album cover |
 | `Example Artist/2026 - Example Album/01 - First Track.flac` | Track 1 |
 | `Example Artist/2026 - Example Album/02 - Second Track.flac` | Track 2 |
 | `Example Artist/2026 - Example Album/03 - Third Track.flac` | Track 3 |
@@ -322,7 +324,17 @@ FORMATS = (
 
 Available FLAC audio is saved directly. For the MP3 fallback, SoX converts the audio to FLAC and normalizes the peak level to −3 dB. Converting MP3 to FLAC does not restore lost audio detail or make the original source lossless. Direct FLAC downloads are not normalized.
 
-The original `set_metadata()` writes only the year to the `date` tag. Directory naming is independent of this metadata setting. Cover artwork and disc numbers are not written.
+The original `set_metadata()` writes only the year to the `date` tag. Directory naming is independent of this metadata setting. Cover artwork is stored separately as `Folder.jpg`; it is not embedded in FLAC files. Disc numbers are not written.
+
+## Album Covers
+
+When `ALB_PICTURE` is available, the helper requests a 1000 × 1000 JPEG and saves it as `Folder.jpg` in the album directory. No additional dependencies are required. For album URLs, the album picture ID is copied into each track's data.
+
+Existing cover files are preserved. Exclusive creation prevents another worker from overwriting a cover already created in the same directory. Since the helper runs before each track download, concurrent workers may request the image more than once before the file exists.
+
+Missing picture IDs are skipped. Responses whose Content-Type is not `image/jpeg` are skipped with a message. Covers are not embedded in audio metadata, and a cover can remain even if the audio download fails.
+
+The proposed helper writes directly to the destination file. A failed or interrupted write can leave an incomplete `Folder.jpg` that later runs skip; delete it to retry. HTTP and network exceptions are not explicitly handled by its `except OSError` block and can interrupt processing.
 
 ## Known Limitations
 
@@ -350,6 +362,8 @@ The original `set_metadata()` writes only the year to the `date` tag. Directory 
 | `Couldn't resolve artist URLs: …` | Check connectivity, the artist ID, the catalog response, and short-link resolution. |
 | `Couldn't resolve Deezer short link: …` | Use a direct Deezer web URL; JavaScript and app-only redirects are not supported. |
 | `No albums found` | No eligible albums or EPs were returned for the supplied artist. |
+| Missing cover | Check the picture ID, network errors, and image Content-Type. |
+| Incomplete cover | Delete `Folder.jpg` and rerun the download. |
 | MP3 fallback fails | Check that `sox` is available and supports MP3 input. |
 
-This README describes the original script and the proposed artist expansion, release filtering, and short-link changes. Ensure those changes are present in `deedl.py` before using these features. The attached source was a README, so the current script implementation and actual downloads were not verified during this documentation update.
+This README describes the original script and the proposed artist expansion, release filtering, short-link changes, and the proposed cover helper. Ensure those changes are present in `deedl.py` before using these features. The attached source was a README, so the current script implementation and actual downloads were not verified during this documentation update.

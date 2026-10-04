@@ -323,10 +323,48 @@ def get_song_filename(song):
 
     return album_dir / f"{track_number:02d} - {title}.flac"
 
+def download_album_cover(session, song, album_dir):
+    cover_file = album_dir / "Folder.jpg"
+
+    if cover_file.is_file():
+        return
+
+    picture_id = song.get("ALB_PICTURE")
+    if not picture_id:
+        return
+
+    cover_url = (
+        "https://e-cdns-images.dzcdn.net/images/cover/"
+        f"{picture_id}/1000x1000-000000-80-0-0.jpg"
+    )
+
+    try:
+        resp = session.get(cover_url, timeout=30)
+        resp.raise_for_status()
+
+        if not resp.headers.get("Content-Type", "").startswith("image/jpeg"):
+            print(f"Unexpected cover format: {cover_url}")
+            return
+
+        # Exclusive creation prevents concurrent downloads from
+        # overwriting a cover created by another worker.
+        try:
+            with cover_file.open("xb") as fp:
+                fp.write(resp.content)
+        except FileExistsError:
+            return
+
+        print(f"Saved cover: {cover_file}")
+
+    except OSError as exc:
+        print(f"Couldn't save cover for {album_dir}: {exc}")
 
 def download_song(get_session, song, fmt, urls):
     session = get_session()
     filename = get_song_filename(song)
+    
+    download_album_cover(session, song, filename.parent)
+
     songid_md5 = md5hex(a2b(song["SNG_ID"]))
     decrypt_key = bytes(
         songid_md5[i] ^ songid_md5[i + 16] ^ SECRET_DECRYPT[i]
@@ -393,6 +431,9 @@ def get_songs(pool, get_session, license_token, url):
             for song in pagedata["SONGS"]["data"]:
                 if album_artist:
                     song["ALB_ART_NAME"] = album_artist
+
+                if picture_id := pagedata["DATA"].get("ALB_PICTURE"):
+                    song["ALB_PICTURE"] = picture_id
 
                 for tag in DATE_TAGS:
                     song[tag] = pagedata["DATA"].get(tag)
