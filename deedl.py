@@ -15,6 +15,7 @@ from requests import Session
 from subprocess import Popen, DEVNULL, PIPE, STDOUT
 from sys import argv, exit
 from threading import local as thread_local
+from urllib.parse import urlparse
 
 BLOWFISH_IV = b"\x00\x01\x02\x03\x04\x05\x06\x07"
 SECRET_DECRYPT = b"g4el58wc0zvf9na1"
@@ -32,6 +33,122 @@ FORMATS = (
     "FLAC",
     "MP3_320",
 )
+
+ARTIST_PATH_RE = regex(
+    r"^/(?:[a-z]{2}/)?artist/(\d+)(?:/.*)?$"
+)
+
+def get_artist_album_urls(session, artist_id):
+    endpoint = f"https://api.deezer.com/artist/{artist_id}/albums"
+    album_urls = []
+    seen_ids = set()
+    index = 0
+
+    while True:
+        resp = session.get(
+            endpoint,
+            params={"limit": 100, "index": index},
+            timeout=30,
+        )
+        resp.raise_for_status()
+        payload = resp.json()
+
+        if error := payload.get("error"):
+            raise RuntimeError(
+                f"Artist {artist_id}: "
+                f"{error.get('message', error)}"
+            )
+
+        albums = payload.get("data")
+        if not isinstance(albums, list):
+            raise RuntimeError(
+                f"Artist {artist_id}: invalid album response"
+            )
+
+        for album in albums:
+            if album.get("record_type") not in {"album", "ep"}:
+                continue
+
+            album_id = str(album["id"])
+
+            if album_id in seen_ids:
+                continue
+
+            seen_ids.add(album_id)
+            album_urls.append(
+                f"https://www.deezer.com/de/album/{album_id}"
+            )
+
+        if not payload.get("next"):
+            break
+
+        if not albums:
+            raise RuntimeError(
+                f"Artist {artist_id}: empty pagination page"
+            )
+
+        index += len(albums)
+
+    print(f"Artist {artist_id}: found {len(album_urls)} releases")
+    return album_urls
+
+def resolve_deezer_url(session, url):
+    if urlparse(url).hostname != "link.deezer.com":
+        return url
+
+    resp = session.get(
+        url,
+        allow_redirects=True,
+        timeout=30,
+    )
+    resp.raise_for_status()
+
+    resolved_url = resp.url
+    hostname = urlparse(resolved_url).hostname
+
+    if hostname not in {"deezer.com", "www.deezer.com"}:
+        raise RuntimeError(
+            f"Couldn't resolve Deezer short link: "
+            f"{url} -> {resolved_url}"
+        )
+
+    print(f"Resolved: {url} -> {resolved_url}")
+    return resolved_url
+
+def expand_artist_urls(urls):
+    expanded = []
+    seen_urls = set()
+
+    with Session() as session:
+        session.headers["User-Agent"] = (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/131.0.0.0 Safari/537.36"
+        )
+
+        for url in urls:
+            # Resolve short links before checking the resource type.
+            url = resolve_deezer_url(session, url)
+
+            parsed = urlparse(url)
+            match = ARTIST_PATH_RE.fullmatch(parsed.path)
+
+            if (
+                parsed.hostname in {"deezer.com", "www.deezer.com"}
+                and match
+            ):
+                resolved_urls = get_artist_album_urls(
+                    session, match.group(1)
+                )
+            else:
+                resolved_urls = [url]
+
+            for resolved_url in resolved_urls:
+                if resolved_url not in seen_urls:
+                    seen_urls.add(resolved_url)
+                    expanded.append(resolved_url)
+
+    return expanded
 
 def main(script, urls):
     if not urls:
@@ -76,6 +193,16 @@ def main(script, urls):
            not useropts["mobile_lossless"]:
             print("account can't download lossless audio")
             return 1
+
+        try:
+            urls = expand_artist_urls(urls)
+        except (RuntimeError, ValueError, OSError) as exc:
+            print(f"Couldn't resolve artist URLs: {exc}")
+            return 1
+
+        if not urls:
+            print("No albums found")
+            return 0
 
         tlocal = thread_local()
 

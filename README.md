@@ -1,10 +1,14 @@
- Deezer Audio Downloader
+# Deezer Audio Downloader
 
-Python script for processing Deezer album, track, and playlist URLs. This README describes the supplied script with the discussed `clean_filename()` and `get_song_filename()` additions, artist directories, and album release years.
+Download audio from Deezer album, artist, track, and playlist URLs with `deedl.py`. Downloads are organized by artist, album release year, and track number.
 
 ## Features
 
 - Processes the tracks included in an album page.
+- Expands artist URLs into album and EP URLs, including additional catalog result pages.
+- Excludes singles and unknown release types when expanding artist URLs.
+- Resolves Deezer short links that use HTTP redirects before detecting the resource type.
+- Removes duplicate album IDs within each artist lookup and identical URLs within one invocation.
 - Prefers FLAC; falls back to MP3 at 320 kbit/s and converts it to FLAC using SoX.
 - Organizes downloads as `Artist/Year - Album Title/01 - Track Title.flac`.
 - Creates artist and album directories only when they do not already exist.
@@ -207,6 +211,42 @@ python3 deedl.py "https://www.deezer.com/de/track/TRACK_ID"
 python3 deedl.py "https://www.deezer.com/de/playlist/PLAYLIST_ID"
 ```
 
+### Artist Downloads
+
+Download all albums and EPs returned by the artist catalog endpoint:
+
+```bash
+python3 deedl.py "https://www.deezer.com/en/artist/13130131"
+```
+
+Artist expansion includes only releases whose `record_type` is `album` or `ep`. Singles and entries with missing or unknown release types are skipped. Deluxe, live, and other versions remain included when classified as albums or EPs.
+
+The lookup requests successive catalog pages before submitting album downloads to the thread pool. This pagination is independent of playlist pagination.
+
+This filter applies only to artist expansion. A directly supplied album URL is processed even if it represents a single.
+
+### Deezer Short Links
+
+```bash
+python3 deedl.py "https://link.deezer.com/s/34A5eGxCj9lnAh6WUAb4k"
+```
+
+Short links are resolved before artist detection. The HTTP redirect must finish at `deezer.com` or `www.deezer.com`. Artist targets are then expanded into albums and EPs; album targets are passed to the existing album processor.
+
+JavaScript redirects and app-only landing pages are not resolved by this implementation. If the final URL remains on `link.deezer.com`, use the direct web URL instead. The specific short-link example above has not been verified in this environment.
+
+### Mixed URLs
+
+Artist and album URLs can be supplied together:
+
+```bash
+python3 deedl.py \
+  "https://www.deezer.com/en/artist/ARTIST_ID" \
+  "https://www.deezer.com/de/album/ALBUM_ID"
+```
+
+Identical expanded URL strings are processed once per invocation. Different URL spellings for the same album are not necessarily deduplicated.
+
 Without arguments, the script exits without downloading anything. Press `Ctrl+C` to interrupt processing. Completed files remain on disk.
 
 ## Directory Structure
@@ -244,7 +284,7 @@ The directory name uses the first available artist value in this order:
 3. The first nonempty `ART_NAME` in `ARTISTS`.
 4. `Unbekannter Interpret` if no artist is available.
 
-For album URLs, the discussed change copies `pagedata["DATA"]["ART_NAME"]` into each track's `ALB_ART_NAME` when available. This keeps all tracks under the same album artist directory, including tracks with different individual artists.
+For album URLs, the album handler copies `pagedata["DATA"]["ART_NAME"]` into each track's `ALB_ART_NAME` when available. This keeps all tracks under the same album artist directory, including tracks with different individual artists.
 
 Track and playlist processing falls back to the artist information available in each track's page data. It does not separately fetch album artist information.
 
@@ -286,6 +326,8 @@ The original `set_metadata()` writes only the year to the `date` tag. Directory 
 
 ## Known Limitations
 
+- Artist downloads cover only the albums and EPs returned by the catalog endpoint, not a guaranteed complete historical discography.
+- Short-link resolution supports HTTP redirects only.
 - Existing destination audio files are overwritten. Interrupted downloads cannot be resumed.
 - Multi-disc albums may contain matching track numbers and titles, causing filename collisions. Separate disc directories are not implemented.
 - Albums by the same artist with identical years and titles share a directory.
@@ -305,6 +347,9 @@ The original `set_metadata()` writes only the year to the `date` tag. Directory 
 | `couldn't find page data` | Check the URL, session, and returned page content. |
 | `No FLAC or MP3_320 available …` | No sources in the requested formats were returned for this track. |
 | Import error for `Crypto`, `requests`, or `mutagen` | Follow the dependency checks in your selected installation option; check `Crypto` versus `Cryptodome` for system packages. |
+| `Couldn't resolve artist URLs: …` | Check connectivity, the artist ID, the catalog response, and short-link resolution. |
+| `Couldn't resolve Deezer short link: …` | Use a direct Deezer web URL; JavaScript and app-only redirects are not supported. |
+| `No albums found` | No eligible albums or EPs were returned for the supplied artist. |
 | MP3 fallback fails | Check that `sox` is available and supports MP3 input. |
 
-This README documents the supplied code and the changes discussed in this conversation. Actual downloads were not tested while preparing it.
+This README describes the original script and the proposed artist expansion, release filtering, and short-link changes. Ensure those changes are present in `deedl.py` before using these features. The attached source was a README, so the current script implementation and actual downloads were not verified during this documentation update.
